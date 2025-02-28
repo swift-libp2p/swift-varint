@@ -1,6 +1,19 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the swift-libp2p open source project
+//
+// Copyright (c) 2022-2025 swift-libp2p project authors
+// Licensed under MIT
+//
+// See LICENSE for license information
+// See CONTRIBUTORS for the list of swift-libp2p project authors
+//
+// SPDX-License-Identifier: MIT
+//
+//===----------------------------------------------------------------------===//
+
 //
 //  VarInt.swift
-//  VarInt
 //
 //  Created by Teo on 01/10/15.
 //  Licensed under MIT See LICENCE file in the root of this project for details.
@@ -26,7 +39,7 @@
 
 import Foundation
 
-enum VarIntError : Error {
+enum VarIntError: Error {
     case inputStreamRead
     case overflow
 }
@@ -38,12 +51,12 @@ public typealias DecodedVarInt = (value: Int64, bytesRead: Int)
 public func putUVarInt(_ value: UInt64) -> [UInt8] {
     var buffer = [UInt8]()
     var val: UInt64 = value
-    
+
     while val >= 0x80 {
         buffer.append((UInt8(truncatingIfNeeded: val) | 0x80))
         val >>= 7
     }
-    
+
     buffer.append(UInt8(val))
     return buffer
 }
@@ -57,27 +70,27 @@ public func putUVarInt(_ value: UInt64) -> [UInt8] {
 public func uVarInt(_ buffer: [UInt8]) -> DecodedUVarInt {
     var output: UInt64 = 0
     var counter = 0
-    var shifter:UInt64 = 0
-    
+    var shifter: UInt64 = 0
+
     for byte in buffer {
         if byte < 0x80 {
             if counter > 9 || counter == 9 && byte > 1 {
-                return (0,-(counter+1))
+                return (0, -(counter + 1))
             }
-            return (output | UInt64(byte)<<shifter, counter+1)
+            return (output | UInt64(byte) << shifter, counter + 1)
         }
-        
-        output |= UInt64(byte & 0x7f)<<shifter
+
+        output |= UInt64(byte & 0x7f) << shifter
         shifter += 7
         counter += 1
     }
-    return (0,0)
+    return (0, 0)
 }
 
 /// putVarInt encodes an Int64 into a buffer and returns it.
 public func putVarInt(_ value: Int64) -> [UInt8] {
     let unsignedValue = UInt64(value) << 1
-    
+
     return putUVarInt(unsignedValue)
 }
 
@@ -87,30 +100,29 @@ public func putVarInt(_ value: Int64) -> [UInt8] {
 ///   - n  < 0: value larger than 64 bits (overflow) and -n is the number of bytes read
 ///
 public func varInt(_ buffer: [UInt8]) -> DecodedVarInt {
-    let (unsignedValue, bytesRead)  = uVarInt(buffer)
-    var value                       = Int64(unsignedValue >> 1)
-    
+    let (unsignedValue, bytesRead) = uVarInt(buffer)
+    var value = Int64(unsignedValue >> 1)
+
     if unsignedValue & 1 != 0 { value = ~value }
-    
+
     return (value, bytesRead)
 }
 
-
 /// readUVarInt reads an encoded unsigned integer from the reader and returns it as an UInt64
 public func readUVarInt(_ reader: InputStream) throws -> UInt64 {
-    var value: UInt64   = 0
+    var value: UInt64 = 0
     var shifter: UInt64 = 0
     var index = 0
-    
+
     repeat {
         var buffer = [UInt8](repeating: 0, count: 10)
-        
+
         if reader.read(&buffer, maxLength: 1) < 0 {
             throw VarIntError.inputStreamRead
         }
-        
+
         let buf = buffer[0]
-        
+
         if buf < 0x80 {
             if index > 9 || index == 9 && buf > 1 {
                 throw VarIntError.overflow
@@ -125,7 +137,7 @@ public func readUVarInt(_ reader: InputStream) throws -> UInt64 {
 
 /// readVarInt reads an encoded signed integer from the reader and returns it as an Int64
 public func readVarInt(_ reader: InputStream) throws -> Int64 {
-    
+
     let unsignedValue = try readUVarInt(reader)
     var value = Int64(unsignedValue >> 1)
 
@@ -207,7 +219,7 @@ public func encodedSize(of value: Int64) -> Int {
 /// - Parameter value: The number whose varint size should be calculated.
 /// - Returns: The size, in bytes, of the 64-bit varint.
 public func encodedSize(of value: UInt64) -> Int {
-    return encodedSize(of: Int64(bitPattern: value))
+    encodedSize(of: Int64(bitPattern: value))
 }
 
 /// Counts the number of distinct varints in a packed byte buffer.
@@ -232,7 +244,7 @@ extension Array where Element == UInt8 {
     /// Array<UInt8>[1].asBinaryChunks() -> "00000001"
     /// ```
     func asBinaryChunks() -> String {
-        return self.map {
+        self.map {
             var str = String($0, radix: 2)
             if str.count < 8 { str = String(repeating: "0", count: 8 - str.count) + str }
             return str
