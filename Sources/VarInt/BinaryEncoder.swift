@@ -20,36 +20,36 @@ import Foundation
  */
 public struct BinaryEncoder {
     private var pointer: UnsafeMutablePointer<UInt8>
-    
+
     init(forWritingInto pointer: UnsafeMutablePointer<UInt8>) {
         self.pointer = pointer
     }
-    
+
     private mutating func append(_ byte: UInt8) {
         pointer.pointee = byte
         pointer = pointer.successor()
     }
-    
+
     private mutating func append(contentsOf data: Data) {
         let count = data.count
         data.copyBytes(to: pointer, count: count)
         pointer = pointer.advanced(by: count)
     }
-    
+
     private mutating func append(contentsOf bufferPointer: UnsafeBufferPointer<UInt8>) {
         let count = bufferPointer.count
         pointer.assign(from: bufferPointer.baseAddress!, count: count)
         pointer = pointer.advanced(by: count)
     }
-    
+
     func distance(pointer: UnsafeMutablePointer<UInt8>) -> Int {
-        return pointer.distance(to: self.pointer)
+        pointer.distance(to: self.pointer)
     }
-    
+
     mutating func appendUnknown(data: Data) {
         append(contentsOf: data)
     }
-    
+
     mutating func putVarInt(value: UInt64) {
         var v = value
         while v > 127 {
@@ -58,33 +58,33 @@ public struct BinaryEncoder {
         }
         append(UInt8(v))
     }
-    
+
     mutating func putVarInt(value: Int64) {
         putVarInt(value: UInt64(bitPattern: value))
     }
-    
+
     mutating func putVarInt(value: Int) {
         putVarInt(value: Int64(value))
     }
-    
+
     mutating func putBoolValue(value: Bool) {
         append(value ? 1 : 0)
     }
-    
+
     mutating func putFixedUInt64(value: UInt64) {
         var v = value.littleEndian
         let n = MemoryLayout<UInt64>.size
         memcpy(pointer, &v, n)
         pointer = pointer.advanced(by: n)
     }
-    
+
     mutating func putFixedUInt32(value: UInt32) {
         var v = value.littleEndian
         let n = MemoryLayout<UInt32>.size
         memcpy(pointer, &v, n)
         pointer = pointer.advanced(by: n)
     }
-    
+
     mutating func putFloatValue(value: Float) {
         let n = MemoryLayout<Float>.size
         var v = value
@@ -94,7 +94,7 @@ public struct BinaryEncoder {
         memcpy(pointer, &littleEndianBytes, n)
         pointer = pointer.advanced(by: n)
     }
-    
+
     mutating func putDoubleValue(value: Double) {
         let n = MemoryLayout<Double>.size
         var v = value
@@ -104,7 +104,7 @@ public struct BinaryEncoder {
         memcpy(pointer, &littleEndianBytes, n)
         pointer = pointer.advanced(by: n)
     }
-    
+
     // Write a string field, including the leading index/tag value.
     mutating func putStringValue(value: String) {
         let count = value.utf8.count
@@ -114,7 +114,7 @@ public struct BinaryEncoder {
             pointer = pointer.successor()
         }
     }
-    
+
     mutating func putBytesValue(value: Data) {
         putVarInt(value: value.count)
         append(contentsOf: value)
@@ -123,7 +123,7 @@ public struct BinaryEncoder {
 
 extension UInt64 {
     public func varIntData() -> Data {
-        let byteCount = encodedSize(of: self) //Varint.encodedSize(of: self)
+        let byteCount = encodedSize(of: self)  //Varint.encodedSize(of: self)
         var buffer = Data(count: byteCount)
         buffer.withUnsafeMutableBytes { (unsafePointer: UnsafeMutableRawBufferPointer) in
             guard let baseAddress = unsafePointer.baseAddress, unsafePointer.count > 0 else { return }
