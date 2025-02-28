@@ -59,9 +59,4 @@ final class VarIntTests: XCTestCase {
         /// Assert the original bytes and the recovered bytes are equal
         XCTAssertEqual(bytes, recBytes)
     }
-    
-    static var allTests = [
-        ("testVarInt", testVarInt),
-        ("testUVarIntLengthPrefix", testUVarIntLengthPrefix)
-    ]
 }
