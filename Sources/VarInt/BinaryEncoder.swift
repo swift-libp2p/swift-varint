@@ -29,9 +29,7 @@
 
 import Foundation
 
-/*
- * Encoder for Binary Protocol Buffer format
- */
+/// Encoder for Binary Protocol Buffer format
 public struct BinaryEncoder {
     private var pointer: UnsafeMutablePointer<UInt8>
 
