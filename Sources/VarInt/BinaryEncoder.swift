@@ -50,7 +50,7 @@ public struct BinaryEncoder {
 
     private mutating func append(contentsOf bufferPointer: UnsafeBufferPointer<UInt8>) {
         let count = bufferPointer.count
-        pointer.assign(from: bufferPointer.baseAddress!, count: count)
+        pointer.update(from: bufferPointer.baseAddress!, count: count)
         pointer = pointer.advanced(by: count)
     }
 
