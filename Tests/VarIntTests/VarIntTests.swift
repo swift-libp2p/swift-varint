@@ -12,12 +12,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-import XCTest
+import Testing
 
 @testable import VarInt
 
-final class VarIntTests: XCTestCase {
-    func testVarInt() {
+@Suite("VarInt Tests")
+struct VarIntTests {
+    @Test func testVarInt() {
         /// 1     => 00000001
         /// 127   => 01111111
         /// 128   => 10000000 00000001
@@ -25,36 +26,36 @@ final class VarIntTests: XCTestCase {
         /// 300   => 10101100 00000010
         /// 16384 => 10000000 10000000 00000001
 
-        XCTAssertEqual(putUVarInt(1), [1])
-        XCTAssertEqual(putUVarInt(127), [127])
-        XCTAssertEqual(putUVarInt(128), [128, 1])
-        XCTAssertEqual(putUVarInt(255), [255, 1])
-        XCTAssertEqual(putUVarInt(300), [172, 2])
-        XCTAssertEqual(putUVarInt(16384), [128, 128, 1])
+        #expect(putUVarInt(1) == [1])
+        #expect(putUVarInt(127) == [127])
+        #expect(putUVarInt(128) == [128, 1])
+        #expect(putUVarInt(255) == [255, 1])
+        #expect(putUVarInt(300) == [172, 2])
+        #expect(putUVarInt(16384) == [128, 128, 1])
 
-        XCTAssertEqual(uVarInt(putUVarInt(1)).0, 1)
-        XCTAssertEqual(uVarInt(putUVarInt(127)).0, 127)
-        XCTAssertEqual(uVarInt(putUVarInt(128)).0, 128)
-        XCTAssertEqual(uVarInt(putUVarInt(255)).0, 255)
-        XCTAssertEqual(uVarInt(putUVarInt(300)).0, 300)
-        XCTAssertEqual(uVarInt(putUVarInt(16384)).0, 16384)
+        #expect(uVarInt(putUVarInt(1)).0 == 1)
+        #expect(uVarInt(putUVarInt(127)).0 == 127)
+        #expect(uVarInt(putUVarInt(128)).0 == 128)
+        #expect(uVarInt(putUVarInt(255)).0 == 255)
+        #expect(uVarInt(putUVarInt(300)).0 == 300)
+        #expect(uVarInt(putUVarInt(16384)).0 == 16384)
 
-        XCTAssertEqual(uVarInt([1]).0, 1)
-        XCTAssertEqual(uVarInt([127]).0, 127)
-        XCTAssertEqual(uVarInt([128, 1]).0, 128)
-        XCTAssertEqual(uVarInt([255, 1]).0, 255)
-        XCTAssertEqual(uVarInt([172, 2]).0, 300)
-        XCTAssertEqual(uVarInt([128, 128, 1]).0, 16384)
+        #expect(uVarInt([1]).0 == 1)
+        #expect(uVarInt([127]).0 == 127)
+        #expect(uVarInt([128, 1]).0 == 128)
+        #expect(uVarInt([255, 1]).0 == 255)
+        #expect(uVarInt([172, 2]).0 == 300)
+        #expect(uVarInt([128, 128, 1]).0 == 16384)
 
-        XCTAssertEqual(putUVarInt(1).asBinaryChunks(), "00000001")
-        XCTAssertEqual(putUVarInt(127).asBinaryChunks(), "01111111")
-        XCTAssertEqual(putUVarInt(128).asBinaryChunks(), "10000000 00000001")
-        XCTAssertEqual(putUVarInt(255).asBinaryChunks(), "11111111 00000001")
-        XCTAssertEqual(putUVarInt(300).asBinaryChunks(), "10101100 00000010")
-        XCTAssertEqual(putUVarInt(16384).asBinaryChunks(), "10000000 10000000 00000001")
+        #expect(putUVarInt(1).asBinaryChunks() == "00000001")
+        #expect(putUVarInt(127).asBinaryChunks() == "01111111")
+        #expect(putUVarInt(128).asBinaryChunks() == "10000000 00000001")
+        #expect(putUVarInt(255).asBinaryChunks() == "11111111 00000001")
+        #expect(putUVarInt(300).asBinaryChunks() == "10101100 00000010")
+        #expect(putUVarInt(16384).asBinaryChunks() == "10000000 10000000 00000001")
     }
 
-    func testUVarIntLengthPrefix() throws {
+    @Test func testUVarIntLengthPrefix() throws {
         /// Create some arbitrary data
         let bytes = [UInt8]("Hello World".data(using: .utf8)!)
 
@@ -65,13 +66,13 @@ final class VarIntTests: XCTestCase {
 
         /// Read the length prefixed data to determine the length of the payload
         let lengthPrefix = uVarInt(uVarIntLengthPrefixedBytes)
-        print(lengthPrefix.value)  // 11 -> Hello World == 11 bytes
-        print(lengthPrefix.bytesRead)  // 1  -> The value `11` fits into 1 byte
+        #expect(lengthPrefix.value == 11)  // 11 -> Hello World == 11 bytes
+        #expect(lengthPrefix.bytesRead == 1)  // 1  -> The value `11` fits into 1 byte
 
         /// So dropping the first byte will result in our original data again...
         let recBytes = [UInt8](uVarIntLengthPrefixedBytes.dropFirst(lengthPrefix.bytesRead))
 
         /// Assert the original bytes and the recovered bytes are equal
-        XCTAssertEqual(bytes, recBytes)
+        #expect(bytes == recBytes)
     }
 }
