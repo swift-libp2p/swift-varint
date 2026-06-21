@@ -391,12 +391,5 @@ struct VarIntGoTests {
         }
     }
 
-    // MARK: Benchmarks
-    //
-    // The Go suite includes benchmark functions (`BenchmarkReadUvarint`,
-    // `BenchmarkFromUvarint`, `BenchmarkUvarintSizeOriginal`,
-    // `BenchmarkUvarintSizeCurrent`). Swift Testing does not provide a built-in
-    // benchmarking harness analogous to Go's `testing.B`. Performance work
-    // belongs in a dedicated XCTest performance harness (e.g. `measure { ... }`)
-    // or a tool like swift-benchmark; intentionally not ported here.
+    // TODO: Benchmarks
 }
