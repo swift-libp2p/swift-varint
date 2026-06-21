@@ -80,6 +80,11 @@ public func uVarInt(_ buffer: [UInt8]) -> DecodedUVarInt {
             if counter > 9 || counter == 9 && byte > 1 {
                 return (0, -(counter + 1))
             }
+            // Reject non-minimal encodings: a terminator byte of 0 after one or
+            // more continuation bytes means the trailing byte is redundant.
+            if byte == 0 && counter > 0 {
+                return (0, 0)
+            }
             return (output | UInt64(byte) << shifter, counter + 1)
         }
 
