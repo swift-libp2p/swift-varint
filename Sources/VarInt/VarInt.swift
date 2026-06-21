@@ -39,9 +39,12 @@
 
 import Foundation
 
-enum VarIntError: Error {
+public enum VarIntError: Error {
     case inputStreamRead
     case overflow
+    case notMinimal
+    case eof
+    case unexpectedEOF
 }
 
 public typealias DecodedUVarInt = (value: UInt64, bytesRead: Int)
@@ -77,6 +80,11 @@ public func uVarInt(_ buffer: [UInt8]) -> DecodedUVarInt {
             if counter > 9 || counter == 9 && byte > 1 {
                 return (0, -(counter + 1))
             }
+            // Reject non-minimal encodings: a terminator byte of 0 after one or
+            // more continuation bytes means the trailing byte is redundant.
+            if byte == 0 && counter > 0 {
+                return (0, 0)
+            }
             return (output | UInt64(byte) << shifter, counter + 1)
         }
 
@@ -89,7 +97,15 @@ public func uVarInt(_ buffer: [UInt8]) -> DecodedUVarInt {
 
 /// putVarInt encodes an Int64 into a buffer and returns it.
 public func putVarInt(_ value: Int64) -> [UInt8] {
-    let unsignedValue = UInt64(value) << 1
+    // Zig-zag encode so negative values are handled without trapping and the
+    // result round-trips through `varInt(_:)`.
+    //   value >= 0 → 2 * value
+    //   value <  0 → 2 * |value| - 1
+    // Implemented via `(value << 1) ^ (value >> 63)`, where the arithmetic
+    // right-shift produces all-ones for negatives and all-zeroes for
+    // non-negatives. `<<` on a `FixedWidthInteger` is a bit-pattern shift and
+    // does not trap on overflow.
+    let unsignedValue = UInt64(bitPattern: (value << 1) ^ (value >> 63))
 
     return putUVarInt(unsignedValue)
 }
@@ -112,27 +128,52 @@ public func varInt(_ buffer: [UInt8]) -> DecodedVarInt {
 public func readUVarInt(_ reader: InputStream) throws -> UInt64 {
     var value: UInt64 = 0
     var shifter: UInt64 = 0
-    var index = 0
 
-    repeat {
-        var buffer = [UInt8](repeating: 0, count: 10)
+    // A 64-bit unsigned varint occupies at most 10 bytes, so the loop is hard
+    // bounded. This prevents a pathological stream (e.g. an unbounded run of
+    // continuation bytes) from looping forever.
+    for index in 0..<10 {
+        var byte: UInt8 = 0
+        let bytesRead = withUnsafeMutablePointer(to: &byte) { ptr in
+            reader.read(ptr, maxLength: 1)
+        }
 
-        if reader.read(&buffer, maxLength: 1) < 0 {
+        if bytesRead < 0 {
             throw VarIntError.inputStreamRead
         }
+        if bytesRead == 0 {
+            // Distinguish a clean end-of-stream at the very first byte
+            // (`eof`) from a truncated varint mid-decode (`unexpectedEOF`).
+            throw index == 0 ? VarIntError.eof : VarIntError.unexpectedEOF
+        }
 
-        let buf = buffer[0]
-
-        if buf < 0x80 {
-            if index > 9 || index == 9 && buf > 1 {
+        if byte < 0x80 {
+            // The 10th byte (index 9) can contribute at most one bit; anything
+            // larger would overflow a UInt64.
+            if index == 9 && byte > 1 {
                 throw VarIntError.overflow
             }
-            return value | UInt64(buf) << shifter
+            // Reject non-minimal encodings: a trailing 0 byte after one or
+            // more continuation bytes is redundant.
+            if byte == 0 && index > 0 {
+                throw VarIntError.notMinimal
+            }
+            return value | UInt64(byte) << shifter
         }
-        value |= UInt64(buf & 0x7f) << shifter
+
+        // A continuation byte at the 10th position means an 11th byte would be
+        // required, which overflows a UInt64.
+        if index == 9 {
+            throw VarIntError.overflow
+        }
+
+        value |= UInt64(byte & 0x7f) << shifter
         shifter += 7
-        index += 1
-    } while true
+    }
+
+    // Unreachable: the loop above either returns or throws on every path
+    // before completing 10 iterations.
+    throw VarIntError.overflow
 }
 
 /// readVarInt reads an encoded signed integer from the reader and returns it as an Int64

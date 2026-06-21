@@ -75,4 +75,46 @@ struct VarIntTests {
         /// Assert the original bytes and the recovered bytes are equal
         #expect(bytes == recBytes)
     }
+
+    /// Regression test for the signed-encode bug where `putVarInt(_:)` used
+    /// `UInt64(value) << 1`, which trapped on every negative `Int64` and — even
+    /// if the trap were bypassed via `bitPattern` — would not round-trip
+    /// through `varInt(_:)`'s zig-zag decoder. After the fix, `putVarInt(_:)`
+    /// must accept the full `Int64` range and round-trip exactly.
+    @Test func testSignedVarIntRoundTrip() {
+        // Spot-check the canonical zig-zag mapping at small magnitudes.
+        // Zig-zag interleaves non-negative and negative values:
+        //   0 → 0, -1 → 1, 1 → 2, -2 → 3, 2 → 4, …
+        #expect(putVarInt(0) == [0x00])
+        #expect(putVarInt(-1) == [0x01])
+        #expect(putVarInt(1) == [0x02])
+        #expect(putVarInt(-2) == [0x03])
+        #expect(putVarInt(2) == [0x04])
+
+        // Round-trip a representative spread, including the boundary values
+        // that exposed the original trap (`Int64.min`, `Int64.max`) and the
+        // 1-byte/2-byte size boundary for both signs (±64 ↔ ±65).
+        let values: [Int64] = [
+            .min,
+            -(1 << 62),
+            -1_000_000,
+            -65,
+            -64,
+            -1,
+            0,
+            1,
+            64,
+            65,
+            1_000_000,
+            1 << 62,
+            .max,
+        ]
+
+        for value in values {
+            let encoded = putVarInt(value)
+            let (decoded, bytesRead) = varInt(encoded)
+            #expect(decoded == value, "round-trip mismatch for \(value): decoded \(decoded)")
+            #expect(bytesRead == encoded.count, "bytesRead mismatch for \(value)")
+        }
+    }
 }
