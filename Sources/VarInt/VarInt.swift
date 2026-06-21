@@ -128,12 +128,17 @@ public func varInt(_ buffer: [UInt8]) -> DecodedVarInt {
 public func readUVarInt(_ reader: InputStream) throws -> UInt64 {
     var value: UInt64 = 0
     var shifter: UInt64 = 0
-    var index = 0
 
-    repeat {
-        var buffer = [UInt8](repeating: 0, count: 10)
+    // A 64-bit unsigned varint occupies at most 10 bytes, so the loop is hard
+    // bounded. This prevents a pathological stream (e.g. an unbounded run of
+    // continuation bytes) from looping forever.
+    for index in 0..<10 {
+        var byte: UInt8 = 0
+        let bytesRead = withUnsafeMutablePointer(to: &byte) { ptr in
+            reader.read(ptr, maxLength: 1)
+        }
 
-        if reader.read(&buffer, maxLength: 1) < 0 {
+        if bytesRead < 0 {
             throw VarIntError.inputStreamRead
         }
 
