@@ -141,11 +141,16 @@ public func readUVarInt(_ reader: InputStream) throws -> UInt64 {
         if bytesRead < 0 {
             throw VarIntError.inputStreamRead
         }
+        if bytesRead == 0 {
+            // Distinguish a clean end-of-stream at the very first byte
+            // (`eof`) from a truncated varint mid-decode (`unexpectedEOF`).
+            throw index == 0 ? VarIntError.eof : VarIntError.unexpectedEOF
+        }
 
-        let buf = buffer[0]
-
-        if buf < 0x80 {
-            if index > 9 || index == 9 && buf > 1 {
+        if byte < 0x80 {
+            // The 10th byte (index 9) can contribute at most one bit; anything
+            // larger would overflow a UInt64.
+            if index == 9 && byte > 1 {
                 throw VarIntError.overflow
             }
             return value | UInt64(buf) << shifter
