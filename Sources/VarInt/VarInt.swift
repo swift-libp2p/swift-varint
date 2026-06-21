@@ -153,12 +153,27 @@ public func readUVarInt(_ reader: InputStream) throws -> UInt64 {
             if index == 9 && byte > 1 {
                 throw VarIntError.overflow
             }
-            return value | UInt64(buf) << shifter
+            // Reject non-minimal encodings: a trailing 0 byte after one or
+            // more continuation bytes is redundant.
+            if byte == 0 && index > 0 {
+                throw VarIntError.notMinimal
+            }
+            return value | UInt64(byte) << shifter
         }
-        value |= UInt64(buf & 0x7f) << shifter
+
+        // A continuation byte at the 10th position means an 11th byte would be
+        // required, which overflows a UInt64.
+        if index == 9 {
+            throw VarIntError.overflow
+        }
+
+        value |= UInt64(byte & 0x7f) << shifter
         shifter += 7
-        index += 1
-    } while true
+    }
+
+    // Unreachable: the loop above either returns or throws on every path
+    // before completing 10 iterations.
+    throw VarIntError.overflow
 }
 
 /// readVarInt reads an encoded signed integer from the reader and returns it as an Int64
