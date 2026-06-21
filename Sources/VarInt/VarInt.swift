@@ -92,7 +92,15 @@ public func uVarInt(_ buffer: [UInt8]) -> DecodedUVarInt {
 
 /// putVarInt encodes an Int64 into a buffer and returns it.
 public func putVarInt(_ value: Int64) -> [UInt8] {
-    let unsignedValue = UInt64(value) << 1
+    // Zig-zag encode so negative values are handled without trapping and the
+    // result round-trips through `varInt(_:)`.
+    //   value >= 0 → 2 * value
+    //   value <  0 → 2 * |value| - 1
+    // Implemented via `(value << 1) ^ (value >> 63)`, where the arithmetic
+    // right-shift produces all-ones for negatives and all-zeroes for
+    // non-negatives. `<<` on a `FixedWidthInteger` is a bit-pattern shift and
+    // does not trap on overflow.
+    let unsignedValue = UInt64(bitPattern: (value << 1) ^ (value >> 63))
 
     return putUVarInt(unsignedValue)
 }
