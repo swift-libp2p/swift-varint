@@ -39,9 +39,12 @@
 
 import Foundation
 
-enum VarIntError: Error {
+public enum VarIntError: Error {
     case inputStreamRead
     case overflow
+    case notMinimal
+    case eof
+    case unexpectedEOF
 }
 
 public typealias DecodedUVarInt = (value: UInt64, bytesRead: Int)
