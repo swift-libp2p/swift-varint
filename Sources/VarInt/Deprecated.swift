@@ -111,6 +111,30 @@ public func encodedSize(of value: Int32) -> Int {
     return Int64(value).varIntSize(.twosComplement)
 }
 
+extension VarInt {
+
+    @available(*, deprecated, message: "Use `value.varIntBytes`.")
+    public static func putUVarInt(_ value: UInt64) -> [UInt8] {
+        value.varIntBytes.bytes
+    }
+
+    @available(*, deprecated, message: "Use `value.varIntBytes(.zigZag)`.")
+    public static func putVarInt(_ value: Int64) -> [UInt8] {
+        value.varIntBytes(.zigZag).bytes
+    }
+
+    @available(*, deprecated, message: "Use `VarInt.decode(_:)`.")
+    public static func uVarInt(_ buffer: [UInt8]) -> (value: UInt64, bytesRead: Int) {
+        _legacyDecode(buffer)
+    }
+
+    @available(*, deprecated, message: "Use `VarInt.decodeSigned(_:as:)`.")
+    public static func varInt(_ buffer: [UInt8]) -> (value: Int64, bytesRead: Int) {
+        let (bits, bytesRead) = _legacyDecode(buffer)
+        return (VarInt.SignedEncoding.zigZag.signedValue(from: bits), bytesRead)
+    }
+}
+
 // MARK: - Foundation
 
 #if canImport(Foundation)
