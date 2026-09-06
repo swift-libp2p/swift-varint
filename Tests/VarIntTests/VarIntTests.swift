@@ -285,7 +285,7 @@ struct VarIntSignedEncodingTests {
         #expect(VarInt.SignedEncoding.zigZag.unsignedRepresentation(of: Int64.min) == UInt64.max)
         #expect(VarInt.SignedEncoding.zigZag.signedValue(from: UInt64.max) == Int64.min)
     }
-    
+
     /// A bound is checked against the decoded signed value, not against the
     /// encoded bits, so both ends of a range are enforced under both conventions.
     @Test(arguments: [
@@ -479,10 +479,10 @@ struct VarIntDecodeReadingTests {
 
         #expect(decoded == expected)
     }
-    
+
     @Test func readsBackToBackSignedVarIntsUntilTheStreamEnds() throws {
         let expected: [Int64] = [1, 300, 16384, Int64.max, 0]
-        
+
         for encoding in VarInt.SignedEncoding.allCases {
             var iterator = expected.flatMap { $0.varIntBytes(encoding) }.makeIterator()
 
@@ -542,16 +542,17 @@ struct VarIntReaderTests {
 
     @Test func readsSignedFields() throws {
         let digest: [UInt8] = [0xDE, 0xAD, 0xBE, 0xEF]
-        let buffer = Int64(-5).varIntBytes(.zigZag).bytes
-                     + Int64(-5).varIntBytes(.twosComplement).bytes
-                     + digest.varIntLengthPrefixed(.zigZag)
-                     + digest.varIntLengthPrefixed(.twosComplement)
-                     + [0xFF]
+        let buffer =
+            Int64(-5).varIntBytes(.zigZag).bytes
+            + Int64(-5).varIntBytes(.twosComplement).bytes
+            + digest.varIntLengthPrefixed(.zigZag)
+            + digest.varIntLengthPrefixed(.twosComplement)
+            + [0xFF]
 
         var reader = VarIntReader(buffer)
-        let zigZag = try reader.readVarInt() // default is zigzag
+        let zigZag = try reader.readVarInt()  // default is zigzag
         let twos = try reader.readVarInt(.twosComplement)
-        let bodyZigZag = Array(try reader.readVarIntLengthPrefixed()) //default is zigzag
+        let bodyZigZag = Array(try reader.readVarIntLengthPrefixed())  //default is zigzag
         let bodyTwos = Array(try reader.readVarIntLengthPrefixed(.twosComplement))
         let remaining = Array(reader.remaining)
         let isEmpty = reader.isEmpty
@@ -574,12 +575,12 @@ struct VarIntReaderTests {
             } catch {
                 #expect(error == VarIntError.outOfRange(allowed: 0...Int64.max))
             }
-            
+
             let consumed = reader.bytesConsumed
             #expect(consumed == 0)
         }
     }
-    
+
     @Test func rejectsANegativeLengthPrefixEvenWithANegativeLimit() throws {
         for encoding in VarInt.SignedEncoding.allCases {
             let negativeLength = Int64(-1).varIntBytes(encoding).bytes + [0xDE, 0xAD]
@@ -591,7 +592,7 @@ struct VarIntReaderTests {
             } catch {
                 #expect(error == VarIntError.outOfRange(allowed: 0...0))
             }
-            
+
             let consumed = reader.bytesConsumed
             #expect(consumed == 0)
         }

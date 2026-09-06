@@ -121,7 +121,7 @@ public struct VarIntReader<Bytes: Collection<UInt8>>: ~Copyable {
 
         return try collectTheBody(tail, length: length, bodyStart: bodyStart)
     }
-    
+
     /// Reads a signed VarInt length prefix followed by that many bytes, and advances past both.
     ///
     /// - Parameters:
@@ -151,9 +151,13 @@ public struct VarIntReader<Bytes: Collection<UInt8>>: ~Copyable {
 
         return try collectTheBody(tail, length: UInt64(length), bodyStart: bodyStart)
     }
-    
+
     @inlinable
-    mutating func collectTheBody(_ tail: Bytes.SubSequence, length: UInt64, bodyStart: Bytes.Index) throws(VarIntError) -> Bytes.SubSequence {
+    mutating func collectTheBody(
+        _ tail: Bytes.SubSequence,
+        length: UInt64,
+        bodyStart: Bytes.Index
+    ) throws(VarIntError) -> Bytes.SubSequence {
         guard let bodyCount = Int(exactly: length) else { throw VarIntError.overflow }
 
         // Walk the body rather than slicing on a computed index so this works on

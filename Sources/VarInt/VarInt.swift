@@ -56,21 +56,21 @@ extension VarInt {
     /// therefore the encoding and decoding have to both use the same method in order to
     /// preserve the original value. A limitation that unsigned VarInts don't share.
     public enum SignedEncoding: Hashable, Sendable, CaseIterable {
-        
+
         /// Zig-zag: positive `n` becomes `2n`, negative `n` becomes `2|n| - 1`.
         ///
         /// Interleaves the signs, `0, -1, 1, -2, 2, …` map to `0, 1, 2, 3, 4, …`,
         /// so small magnitudes of either sign stay small on the wire. This is
         /// protobuf's `sint32`/`sint64` and the default here.
         case zigZag
-        
+
         /// Sign-extended two's complement: the value's bit pattern, encoded as if
         /// unsigned.
         ///
         /// Every negative value occupies the full ten bytes. This is protobuf's
         /// `int32`/`int64`.
         case twosComplement
-        
+
         /// Converts the signed `value` into it's unsigned equivalent using the chosen encoding method
         @inlinable
         public func unsignedRepresentation(of value: Int64) -> UInt64 {
@@ -85,7 +85,7 @@ extension VarInt {
                 UInt64(bitPattern: value)
             }
         }
-        
+
         /// The signed value that `bits` represents under this convention.
         ///
         /// The inverse of `unsignedRepresentation(of:)`.
@@ -198,7 +198,7 @@ extension VarInt {
         } catch VarIntError.exceedsLimit {
             throw VarIntError.outOfRange(allowed: allowed)
         }
-        
+
         // ensure the decoded value falls within the allowed range
         let value = encoding.signedValue(from: bits)
         guard allowed.contains(value) else { throw .outOfRange(allowed: allowed) }

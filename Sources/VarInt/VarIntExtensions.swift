@@ -41,7 +41,7 @@ extension UInt64 {
 extension UInt32 {
     /// The minimal unsigned VarInt encoding of this value.
     @inlinable public var varIntBytes: VarIntBytes { UInt64(self).varIntBytes }
-    
+
     /// The number of bytes `varIntBytes` occupies.
     @inlinable public var varIntSize: Int { UInt64(self).varIntSize }
 }
@@ -49,7 +49,7 @@ extension UInt32 {
 extension UInt {
     /// The minimal unsigned varInt encoding of this value.
     @inlinable public var varIntBytes: VarIntBytes { UInt64(self).varIntBytes }
-    
+
     /// The number of bytes `varIntBytes` occupies.
     @inlinable public var varIntSize: Int { UInt64(self).varIntSize }
 }

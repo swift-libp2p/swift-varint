@@ -243,7 +243,7 @@ struct VarIntGoTests {
         .init(name: "alternating_pattern", value: 0xAAAA_AAAA_AAAA_AAAA, expected: 10),
         .init(name: "alternating_pattern2", value: 0x5555_5555_5555_5555, expected: 9),
     ]
-    
+
     /// Counterpart of Go's `TestUvarintSizeEdgeCases`. Cross-checks the
     /// optimised size calculation against the reference implementation and
     /// against the actual encoded length for a curated list of edge cases.

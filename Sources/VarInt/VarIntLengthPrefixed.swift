@@ -38,7 +38,7 @@ extension Collection where Element == UInt8 {
         result.append(contentsOf: self)
         return result
     }
-    
+
     /// These bytes, preceded by their count as an signed VarInt.
     ///
     /// - Note:
